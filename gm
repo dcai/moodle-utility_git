@@ -1,0 +1,107 @@
+#!/bin/bash
+
+# Your github username
+github_user="dongsheng"
+# The remote name of your github repo, it usually origin
+github_remote_name="github"
+
+
+### STOP CONFIG SINCE HERE! ###
+github_diff_root="https://github.com/$github_user/moodle/compare/"
+
+export BLUE="\033[1;34m";
+export CLROFF="\033[0;0m";
+
+function parse_git_branch {
+    git branch --no-color 2> /dev/null | sed -e '/^[^*]/d' -e "s/* \(.*\)/\1/"
+}
+
+function parse_git_branch_version {
+    parse_git_branch | sed -e 's/\(.*\)_\(.*\)$/\2/'
+}
+function parse_git_branch_prefix {
+    parse_git_branch | sed -e 's/\(.*\)_\(.*\)$/\1/'
+}
+function parse_issue_number {
+    parse_git_branch | sed -e 's/\(.*\)_\([A-Z]*\)\-\([0-9]*\)_\(.*\)/\2-\3/'
+}
+
+function status {
+    echo -e ":: $1 ::"
+}
+
+function process_msg {
+    echo -e "=> $1"
+}
+
+current_branch=$(parse_git_branch)
+case "$1" in
+    update)
+        status "You were on branch ${current_branch}"
+        declare -a remote_repos
+        remote_repos=(`git remote | tr "\n" " "`)
+        #echo ${remote_repos[@]}
+        for repo in ${remote_repos[@]}; do
+            echo "=> Updating $repo"
+            `git fetch "$repo" -q`
+        done
+        process_msg "Saving stash"
+        git stash save
+        process_msg "Merging master"
+        git checkout master
+        git merge upstream/master
+        process_msg "Merging 2.0 branch"
+        git branch MOODLE_20_STABLE
+        git checkout MOODLE_20_STABLE
+        git merge upstream/MOODLE_20_STABLE
+        process_msg "Pushing new master"
+        git push $github_remote_name refs/remotes/upstream/master:master
+        git push $github_remote_name refs/remotes/upstream/MOODLE_20_STABLE:MOODLE_20_STABLE
+        git checkout $current_branch
+        git stash pop
+    ;;
+    info)
+        echo -e "Your repo: [${BLUE}git@github.com:$github_user/moodle.git${CLROFF}]"
+        echo -e "[${BLUE}${current_branch}${CLROFF}]"
+        if [ $(parse_git_branch_version) = "master" ]; then
+            echo "${github_diff_root}master...$(parse_git_branch)"
+            echo -e "[${BLUE}$(parse_git_branch_prefix)_20${CLROFF}]"
+            echo "${github_diff_root}MOODLE_20_STABLE...$(parse_git_branch_prefix)_20"
+        elif [ $(parse_git_branch_version) = "20" ]; then
+            echo "${github_diff_root}MOODLE_$(parse_git_branch_version)_STABLE...$(parse_git_branch)"
+            echo -e "[${BLUE}$(parse_git_branch_prefix)_master${CLROFF}]"
+            echo "${github_diff_root}master...$(parse_git_branch_prefix)_master"
+        else
+            echo -e "EOF"
+        fi
+    ;;
+    pick)
+        if [ $(parse_git_branch_version) = "master" ]; then
+            git cherry-pick MOODLE_20_STABLE...$(parse_git_branch_prefix)_20
+        elif [ $(parse_git_branch_version) = "20" ]; then
+            git cherry-pick master...$(parse_git_branch_prefix)_master
+        else
+            echo -e "EOF"
+        fi
+    ;;
+    top)
+        status "Latest commit on ${BLUE}[$current_branch]${CLROFF}"
+        git log --format=%H|head -1
+    ;;
+    create)
+        git stash save
+        git checkout -b "$2_$3_$4_master" upstream/master 
+        git checkout -b "$2_$3_$4_20" upstream/MOODLE_20_STABLE 
+        git checkout $current_branch
+        git stash pop
+    ;;
+    issue)
+        open "http://tracker.moodle.org/browse/$(parse_issue_number)"
+    ;;
+    credit)
+        git log --format='%aN <%aE>' | awk '{arr[$0]++} END{for (i in arr){print arr[i], i;}}' | sort -rn | cut -d\  -f2-
+    ;;
+    *)
+        status "You were on branch ${current_branch}"
+    ;;
+esac
