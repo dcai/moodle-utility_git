@@ -47,40 +47,50 @@ case "$1" in
         done
         process_msg "Saving stash"
         git stash save
-        process_msg "Merging master"
+
+        process_msg "Updating master"
         git checkout master
         git merge upstream/master
-        process_msg "Merging 2.0 branch"
-        git branch MOODLE_20_STABLE
+
+        process_msg "Updating 21 branch"
+        git checkout MOODLE_21_STABLE
+        git merge upstream/MOODLE_21_STABLE
+
+        process_msg "Updating 20 branch"
         git checkout MOODLE_20_STABLE
         git merge upstream/MOODLE_20_STABLE
-        process_msg "Pushing new master"
+
+        process_msg "Pushing master to github"
         git push $github_remote_name refs/remotes/upstream/master:master
+
+        process_msg "Pushing 21 to github"
+        git push $github_remote_name refs/remotes/upstream/MOODLE_21_STABLE:MOODLE_21_STABLE
+
+        process_msg "Pushing 20 to github"
         git push $github_remote_name refs/remotes/upstream/MOODLE_20_STABLE:MOODLE_20_STABLE
+
         git checkout $current_branch
+
         git stash pop
     ;;
     info)
-        echo -e "Your repo: [${BLUE}git@github.com:$github_user/moodle.git${CLROFF}]"
+        # My repo
+        echo -e "Repo: [${BLUE}git@github.com:$github_user/moodle.git${CLROFF}]"
+
+        # master branch name
         echo -e "[${BLUE}${current_branch}${CLROFF}]"
         if [ $(parse_git_branch_version) = "master" ]; then
+            # master branch diff
             echo "${github_diff_root}master...$(parse_git_branch)"
+
+            # 21 branch
+            echo -e "[${BLUE}$(parse_git_branch_prefix)_21${CLROFF}]"
+            echo "${github_diff_root}MOODLE_21_STABLE...$(parse_git_branch_prefix)_21"
+            # 20 branch
             echo -e "[${BLUE}$(parse_git_branch_prefix)_20${CLROFF}]"
             echo "${github_diff_root}MOODLE_20_STABLE...$(parse_git_branch_prefix)_20"
-        elif [ $(parse_git_branch_version) = "20" ]; then
-            echo "${github_diff_root}MOODLE_$(parse_git_branch_version)_STABLE...$(parse_git_branch)"
-            echo -e "[${BLUE}$(parse_git_branch_prefix)_master${CLROFF}]"
-            echo "${github_diff_root}master...$(parse_git_branch_prefix)_master"
         else
-            echo -e "EOF"
-        fi
-    ;;
-    pick)
-        if [ $(parse_git_branch_version) = "master" ]; then
-            git cherry-pick MOODLE_20_STABLE...$(parse_git_branch_prefix)_20
-        elif [ $(parse_git_branch_version) = "20" ]; then
-            git cherry-pick master...$(parse_git_branch_prefix)_master
-        else
+            echo "Please switch to the branch based on master to see info"
             echo -e "EOF"
         fi
     ;;
@@ -92,6 +102,7 @@ case "$1" in
         git stash save
         git checkout -b "$2_$3_$4_master" upstream/master 
         git checkout -b "$2_$3_$4_20" upstream/MOODLE_20_STABLE 
+        git checkout -b "$2_$3_$4_21" upstream/MOODLE_21_STABLE 
         git checkout $current_branch
         git stash pop
     ;;
