@@ -41,16 +41,21 @@ case "$1" in
         declare -a remote_repos
         remote_repos=(`git remote | tr "\n" " "`)
         #echo ${remote_repos[@]}
-        for repo in ${remote_repos[@]}; do
-            echo "=> Updating $repo"
-            `git fetch "$repo" -q`
-        done
+        git fetch upstream
+        #for repo in ${remote_repos[@]}; do
+            #echo "=> Updating $repo"
+            #`git fetch "$repo" -q`
+        #done
         process_msg "Saving stash"
         git stash save
 
         process_msg "Updating master"
         git checkout master
         git merge upstream/master
+
+        process_msg "Updating 24 branch"
+        git checkout MOODLE_23_STABLE
+        git merge upstream/MOODLE_23_STABLE
 
         process_msg "Updating 23 branch"
         git checkout MOODLE_23_STABLE
@@ -60,16 +65,11 @@ case "$1" in
         git checkout MOODLE_22_STABLE
         git merge upstream/MOODLE_22_STABLE
 
-        #process_msg "Updating 21 branch"
-        #git checkout MOODLE_21_STABLE
-        #git merge upstream/MOODLE_21_STABLE
-
-        #process_msg "Updating 20 branch"
-        #git checkout MOODLE_20_STABLE
-        #git merge upstream/MOODLE_20_STABLE
-
         process_msg "Pushing master to github"
         git push $github_remote_name refs/remotes/upstream/master:master
+
+        process_msg "Pushing 24 to github"
+        git push $github_remote_name refs/remotes/upstream/MOODLE_24_STABLE:MOODLE_24_STABLE
 
         process_msg "Pushing 23 to github"
         git push $github_remote_name refs/remotes/upstream/MOODLE_23_STABLE:MOODLE_23_STABLE
@@ -77,15 +77,16 @@ case "$1" in
         process_msg "Pushing 22 to github"
         git push $github_remote_name refs/remotes/upstream/MOODLE_22_STABLE:MOODLE_22_STABLE
 
-        #process_msg "Pushing 21 to github"
-        #git push $github_remote_name refs/remotes/upstream/MOODLE_21_STABLE:MOODLE_21_STABLE
-
-        #process_msg "Pushing 20 to github"
-        #git push $github_remote_name refs/remotes/upstream/MOODLE_20_STABLE:MOODLE_20_STABLE
-
         git checkout $current_branch
 
         git stash pop
+    ;;
+    push)
+        git fetch upstream
+        git push $2 refs/remotes/upstream/master:master
+        git push $2 refs/remotes/upstream/MOODLE_24_STABLE:MOODLE_24_STABLE
+        git push $2 refs/remotes/upstream/MOODLE_23_STABLE:MOODLE_23_STABLE
+        git push $2 refs/remotes/upstream/MOODLE_22_STABLE:MOODLE_22_STABLE
     ;;
     info)
         # My repo
