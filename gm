@@ -82,11 +82,15 @@ case "$1" in
         git stash pop
     ;;
     push)
-        git fetch upstream
-        git push $2 refs/remotes/upstream/master:master
-        git push $2 refs/remotes/upstream/MOODLE_24_STABLE:MOODLE_24_STABLE
-        git push $2 refs/remotes/upstream/MOODLE_23_STABLE:MOODLE_23_STABLE
-        git push $2 refs/remotes/upstream/MOODLE_22_STABLE:MOODLE_22_STABLE
+        if [[ -z $2 ]]; then
+            echo "Please provide a remote name"
+        else
+            git fetch upstream
+            git push $2 refs/remotes/upstream/master:master
+            git push $2 refs/remotes/upstream/MOODLE_24_STABLE:MOODLE_24_STABLE
+            git push $2 refs/remotes/upstream/MOODLE_23_STABLE:MOODLE_23_STABLE
+            git push $2 refs/remotes/upstream/MOODLE_22_STABLE:MOODLE_22_STABLE
+        fi
     ;;
     info)
         # My repo
@@ -121,9 +125,8 @@ case "$1" in
     create)
         git stash save
         git checkout -b "$2_$3_$4_master" upstream/master 
-        git checkout -b "$2_$3_$4_22" upstream/MOODLE_22_STABLE 
-        git checkout -b "$2_$3_$4_21" upstream/MOODLE_21_STABLE 
-        git checkout -b "$2_$3_$4_20" upstream/MOODLE_20_STABLE 
+        git checkout -b "$2_$3_$4_24" upstream/MOODLE_24_STABLE
+        git checkout -b "$2_$3_$4_23" upstream/MOODLE_23_STABLE
         git checkout $current_branch
         git stash pop
     ;;
